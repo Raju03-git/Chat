@@ -22,55 +22,50 @@ io.on("connection", (socket) => {
   console.log(`User Connected: ${socket.id}`);
 
   socket.on("join_room", (data) => {
-    console.log('');
-    console.log('');
-    console.log('<>Joined<>');
-    console.log('');
-    console.log('');
     const user = { username: data.username, room: data.room };
-
     users[socket.id] = user;
     socket.join(data.room);
-    console.log(`User ${data.username} with ID: ${socket.id} joined room: ${data}`);
+    console.log(`User ${data.username} with ID: ${socket.id} joined room: ${data.room}`);
     const userJoinedMsg = `${data.username} has joined the chat`;
-    const chatDet = { room: data.room, author: 'chatBot', message: userJoinedMsg, time: '13:3' }
-    console.log('<><>chatDet<><>', chatDet);
-    socket.to(data.room).emit("user_joined", chatDet);
+    const chatDet = { room: data.room, type: 'user_activity', message: userJoinedMsg }
+    const join_message =this.formatMesssage(user.room, user.username, 'joined', 'user_activity');
+    socket.to(data.room).emit("user_joined", join_message);
     socket.to(data.room).emit("active_users", users);
-    console.log('<><>chatDet<><>', chatDet);
   });
 
   socket.on("send_message", (data) => {
-    console.log('<><>send_message<><>', data);
     let clientInstance = new message(data);
     clientInstance.save();
     let uniqueMessages = message.find({});
-    //console.log('<>uniqueMessages<>', uniqueMessages)
+    //console.log('<>uniqueMessages<>', uniqueMessages);
     socket.to(data.room).emit("receive_message", data);
   });
 
   socket.on("disconnect", () => {
-    console.log('<><>data<><>', users);
     console.log("User Disconnected", socket.id);
-
-
     let user = users[socket.id];
-    console.log('<><>user<><>',user);
     if (user) {
       const userJoinedMsg = `${user.username} has been left from the chat`;
-      const chatDet = { room: user.room, author: 'chatBot', message: userJoinedMsg, time: '13:3' }
-      console.log('<><>chatDet<><>', chatDet);
-      socket.to(data.room).emit("user_left", chatDet);
-      console.log('<><>chatDet<><>', chatDet);
+      const left_message =this.formatMesssage(user.room, user.username, 'left', 'user_activity');
+      console.log('<>left_message<>',left_message);
+      const chatDet = { room: user.room, type: 'user_activity', message: userJoinedMsg }
+      socket.to(user.room).emit("user_left", left_message);
     }
   });
 });
+
+exports.formatMesssage = async (room, username, status, type) => {
+  let user_message = { room: room, message: username + " " + status };
+  if (type == 'user_activity')
+    user_message[type] = 'user_activity';
+  return user_message;
+};
 
 /**
  * Database connection
  */
 db.connect();
 
-server.listen(3333, () => {
+server.listen(3001, () => {
   console.log("SERVER RUNNING");
 });
