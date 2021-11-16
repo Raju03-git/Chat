@@ -26,18 +26,17 @@ io.on("connection", (socket) => {
     users[socket.id] = user;
     socket.join(data.room);
     console.log(`User ${data.username} with ID: ${socket.id} joined room: ${data.room}`);
-    const userJoinedMsg = `${data.username} has joined the chat`;
-    const chatDet = { room: data.room, type: 'user_activity', message: userJoinedMsg }
-    const join_message =this.formatMesssage(user.room, user.username, 'joined', 'user_activity');
+
+    const join_message = this.formatMesssage(user.room, user.username, 'joined', 'user_activity');
     socket.to(data.room).emit("user_joined", join_message);
     socket.to(data.room).emit("active_users", users);
   });
 
-  socket.on("send_message", (data) => {
+  socket.on("send_message", async (data) => {
     let clientInstance = new message(data);
     clientInstance.save();
-    let uniqueMessages = message.find({});
-    //console.log('<>uniqueMessages<>', uniqueMessages);
+    let uniqueMessages = await this.findAllMessages(data.room);
+    console.log('<>uniqueMessages<>', uniqueMessages);
     socket.to(data.room).emit("receive_message", data);
   });
 
@@ -45,10 +44,8 @@ io.on("connection", (socket) => {
     console.log("User Disconnected", socket.id);
     let user = users[socket.id];
     if (user) {
-      const userJoinedMsg = `${user.username} has been left from the chat`;
-      const left_message =this.formatMesssage(user.room, user.username, 'left', 'user_activity');
-      console.log('<>left_message<>',left_message);
-      const chatDet = { room: user.room, type: 'user_activity', message: userJoinedMsg }
+
+      const left_message = this.formatMesssage(user.room, user.username, 'left', 'user_activity');
       socket.to(user.room).emit("user_left", left_message);
     }
   });
@@ -60,6 +57,18 @@ exports.formatMesssage = async (room, username, status, type) => {
     user_message[type] = 'user_activity';
   return user_message;
 };
+
+exports.findAllMessages = async (roomId) => {
+  return await message.find({ room: roomId });
+    // .then(async (result) => {
+    //   console.log('<><>', result);
+    //   return result;
+    // }).catch(err => {
+    //   throw err;
+    // });
+  // return 'user_message';
+};
+
 
 /**
  * Database connection
